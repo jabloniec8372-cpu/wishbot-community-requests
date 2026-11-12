@@ -1,0 +1,10 @@
+{
+  "telegram_token": "TOKEN_FROM_BOTFATHER",
+  "allowed_chat_id": "YOUR_GROUP_CHAT_ID",
+  "db_path": "wishbot.db",
+  "strikes_limit": 3,
+  "google_form": {
+    "action_url": "https://docs.google.com/forms/d/e/FORM_ID/formResponse",
+    "fields": {"title": "entry.1111111111", "url": "entry.2222222222", "member": "entry.3333333333"}
+  }
+}
