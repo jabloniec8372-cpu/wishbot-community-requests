@@ -4,15 +4,23 @@ Pure Python (stdlib only). All network access is injected, so the flow is easy t
 """
 import re
 import sqlite3
+import unicodedata
 
 URL_RE = re.compile(r"https?://\S+")
-YES = {"yes", "y", "tak", "ok"}
-NO = {"no", "n", "nie", "cancel"}
+YES = {"yes", "y", "tak", "ok", "ja", "j"}
+NO = {"no", "n", "nie", "cancel", "nein"}
 
 
 def normalize_title(title: str) -> str:
-    """Lowercase, strip punctuation and collapse spaces, so near-identical titles match."""
-    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", title.lower())).strip()
+    """Build a duplicate-matching key that works for any language.
+
+    Case-folds, removes accents (so "Żółw" and "zolw" match), turns punctuation into
+    single spaces. Letters and digits of every script are kept, so Polish, German or
+    Cyrillic titles never collapse into an empty or shared key.
+    """
+    text = unicodedata.normalize("NFKD", title.casefold().replace("ł", "l"))
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    return re.sub(r"[\W_]+", " ", text).strip()
 
 
 class Store:
@@ -94,7 +102,7 @@ class RequestFlow:
                 return "I could not read that link. Please send the title as text."
         else:
             title = text
-        if not title:
+        if not normalize_title(title):
             return "I could not find a title there. Please send it as text."
 
         if self.store.in_catalog(title):

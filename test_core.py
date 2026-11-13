@@ -18,6 +18,25 @@ class FlowTest(unittest.TestCase):
     def test_normalize(self):
         self.assertEqual(normalize_title("  The Hobbit!! "), normalize_title("the   hobbit"))
 
+    def test_normalize_keeps_non_ascii_letters_apart(self):
+        # Before the fix every non-ASCII letter was stripped, so these collided.
+        self.assertNotEqual(normalize_title("Żmija"), normalize_title("Żółć"))
+        self.assertNotEqual(normalize_title("Über"), normalize_title("Ober"))
+        self.assertTrue(normalize_title("Żółć"))
+        self.assertTrue(normalize_title("Война и мир"))
+
+    def test_normalize_matches_with_and_without_accents(self):
+        self.assertEqual(normalize_title("Żółw i zając"), normalize_title("zolw i zajac"))
+        self.assertEqual(normalize_title("Die Verwandlung – Größe"), normalize_title("die verwandlung grosse"))
+
+    def test_polish_title_is_detected_as_duplicate(self):
+        self.store.add_title("Pan Tadeusz")
+        self.assertIn("already in the catalog", self.flow.handle(1, "Anna", "pan tadeusz"))
+        self.assertIn("Is this what you mean?", self.flow.handle(2, "Piotr", "Quo Vadis"))
+
+    def test_symbols_only_is_rejected(self):
+        self.assertIn("could not find a title", self.flow.handle(1, "Anna", "!!! ???"))
+
     def test_confirm_and_submit(self):
         reply = self.flow.handle(1, "Anna", "https://books.example/hobbit")
         self.assertIn("The Hobbit", reply)
