@@ -1,8 +1,8 @@
 # WishBot: Community Request Bot (demo project)
 
 A Telegram bot for community admins who collect requests from group members
-(here: a book club). It confirms every request with the member, blocks duplicates
-and discourages spam, and passes clean requests to the admin through a Google Form,
+(here: a shared film library). It confirms every request with the member, blocks duplicates
+and passes clean requests to the admin through a Google Form,
 so nobody has to copy messages by hand.
 
 This is a personal demo project, not client work. It contains no client data.
@@ -14,14 +14,12 @@ This is a personal demo project, not client work. It contains no client data.
 2. The bot reads the link preview (Open Graph title) and asks: "Is this what you mean?"
 3. After the member confirms, the bot checks a local catalog to prevent duplicates.
 4. New requests are submitted automatically through a Google Form.
-5. A strike system discourages members from requesting items that already exist.
-   After the limit, requests are paused for that member.
+5. If a title is already in the library, the bot says so right away and nothing is submitted.
 
 ## Features
 - **Confirmation step**: nothing is submitted until the member says YES; NO cancels.
 - **Duplicate catalog** (SQLite): matching ignores case, punctuation and accents,
   so "Żółw i zając" and "zolw i zajac" count as the same title. Works for any alphabet.
-- **Strike system** with a configurable limit.
 - **Google Form submission** with no extra services or paid APIs.
 - **Chat lock**: the bot answers only in the chat set in `allowed_chat_id`.
 - **Failure handling**: if the form is down, the request stays pending and the member can retry with YES.
@@ -41,7 +39,7 @@ python demo.py                        # print a sample conversation, no network 
 ## Project layout
 | File | Purpose |
 |---|---|
-| `core.py` | Request flow, duplicate catalog, strike system (pure logic) |
+| `core.py` | Request flow and duplicate catalog (pure logic) |
 | `bot.py` | Telegram long-polling runner |
 | `forms.py` | Google Form submitter |
 | `preview.py` | Reads the page title of a shared link |

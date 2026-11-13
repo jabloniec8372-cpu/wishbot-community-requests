@@ -25,7 +25,6 @@ def main(config_path: str) -> None:
         Store(cfg.get("db_path", "wishbot.db")),
         fetch_title,
         make_submitter(cfg["google_form"]),
-        strike_limit=cfg.get("strikes_limit", 3),
     )
     offset = None
     print("WishBot is running. Ctrl+C to stop.")

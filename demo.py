@@ -3,19 +3,18 @@ from core import RequestFlow, Store
 
 submitted = []
 store = Store()
-store.add_title("Pan Tadeusz")
+store.add_title("Inception")
 flow = RequestFlow(
     store,
-    fetch_title=lambda url: "Solaris - Stanisław Lem" if "solaris" in url else "",
+    fetch_title=lambda url: "Arrival (2016)" if "arrival" in url else "",
     submit_form=lambda title, url, name: submitted.append(title),
-    strike_limit=3,
 )
 
 SCRIPT = [
-    ("Anna", "https://books.example/solaris"),
+    ("Anna", "https://films.example/arrival"),
     ("Anna", "yes"),
-    ("Piotr", "pan tadeusz"),
-    ("Piotr", "Quo Vadis"),
+    ("Piotr", "inception"),
+    ("Piotr", "Dune"),
     ("Piotr", "no"),
 ]
 

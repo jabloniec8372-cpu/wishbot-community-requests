@@ -10,13 +10,12 @@ class FlowTest(unittest.TestCase):
         self.store = Store()
         self.flow = RequestFlow(
             self.store,
-            fetch_title=lambda url: "The Hobbit" if "hobbit" in url else "",
+            fetch_title=lambda url: "Arrival" if "arrival" in url else "",
             submit_form=lambda title, url, name: self.submitted.append((title, url, name)),
-            strike_limit=2,
         )
 
     def test_normalize(self):
-        self.assertEqual(normalize_title("  The Hobbit!! "), normalize_title("the   hobbit"))
+        self.assertEqual(normalize_title("  Arrival!! "), normalize_title("arrival"))
 
     def test_normalize_keeps_non_ascii_letters_apart(self):
         # Before the fix every non-ASCII letter was stripped, so these collided.
@@ -30,31 +29,31 @@ class FlowTest(unittest.TestCase):
         self.assertEqual(normalize_title("Die Verwandlung – Größe"), normalize_title("die verwandlung grosse"))
 
     def test_polish_title_is_detected_as_duplicate(self):
-        self.store.add_title("Pan Tadeusz")
-        self.assertIn("already in the catalog", self.flow.handle(1, "Anna", "pan tadeusz"))
-        self.assertIn("Is this what you mean?", self.flow.handle(2, "Piotr", "Quo Vadis"))
+        self.store.add_title("Żółw i zając")
+        self.assertIn("already in the library", self.flow.handle(1, "Anna", "zolw i zajac"))
+        self.assertIn("Is this what you mean?", self.flow.handle(2, "Piotr", "Dune"))
 
     def test_symbols_only_is_rejected(self):
         self.assertIn("could not find a title", self.flow.handle(1, "Anna", "!!! ???"))
 
     def test_confirm_and_submit(self):
-        reply = self.flow.handle(1, "Anna", "https://books.example/hobbit")
-        self.assertIn("The Hobbit", reply)
+        reply = self.flow.handle(1, "Anna", "https://films.example/arrival")
+        self.assertIn("Arrival", reply)
         self.assertEqual(self.submitted, [])
         self.assertIn("Submitted", self.flow.handle(1, "Anna", "yes"))
-        self.assertEqual(self.submitted, [("The Hobbit", "https://books.example/hobbit", "Anna")])
-        self.assertTrue(self.store.in_catalog("the hobbit"))
+        self.assertEqual(self.submitted, [("Arrival", "https://films.example/arrival", "Anna")])
+        self.assertTrue(self.store.in_catalog("arrival"))
 
     def test_cancel(self):
         self.flow.handle(1, "Anna", "Dune")
         self.assertIn("Cancelled", self.flow.handle(1, "Anna", "no"))
         self.assertEqual(self.submitted, [])
 
-    def test_duplicate_gives_strike_then_blocks(self):
-        self.store.add_title("Dune")
-        self.assertIn("Strike 1/2", self.flow.handle(1, "Anna", "dune"))
-        self.assertIn("Strike 2/2", self.flow.handle(1, "Anna", "DUNE!"))
-        self.assertIn("paused", self.flow.handle(1, "Anna", "Emma"))
+    def test_duplicate_is_reported_but_never_blocks_the_member(self):
+        self.store.add_title("Inception")
+        for _ in range(5):
+            self.assertIn("already in the library", self.flow.handle(1, "Anna", "inception"))
+        self.assertIn("Is this what you mean?", self.flow.handle(1, "Anna", "Dune"))
         self.assertEqual(self.submitted, [])
 
     def test_unreadable_link(self):

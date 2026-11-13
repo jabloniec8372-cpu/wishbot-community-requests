@@ -1,4 +1,4 @@
-"""Core logic of WishBot: confirmation flow, duplicate catalog and strike system.
+"""Core logic of WishBot: confirmation flow and duplicate catalog.
 
 Pure Python (stdlib only). All network access is injected, so the flow is easy to test.
 """
@@ -24,14 +24,13 @@ def normalize_title(title: str) -> str:
 
 
 class Store:
-    """SQLite storage: catalog of already requested/available titles and strikes per member."""
+    """SQLite storage: catalog of already requested/available titles."""
 
     def __init__(self, path: str = ":memory:"):
         self.db = sqlite3.connect(path)
         self.db.executescript(
             """
             CREATE TABLE IF NOT EXISTS catalog (key TEXT PRIMARY KEY, title TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS strikes (user_id TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0);
             """
         )
 
@@ -48,28 +47,14 @@ class Store:
     def catalog_size(self) -> int:
         return self.db.execute("SELECT COUNT(*) FROM catalog").fetchone()[0]
 
-    def strikes(self, user_id: str) -> int:
-        row = self.db.execute("SELECT count FROM strikes WHERE user_id = ?", (user_id,)).fetchone()
-        return row[0] if row else 0
-
-    def add_strike(self, user_id: str) -> int:
-        self.db.execute(
-            "INSERT INTO strikes (user_id, count) VALUES (?, 1) "
-            "ON CONFLICT(user_id) DO UPDATE SET count = count + 1",
-            (user_id,),
-        )
-        self.db.commit()
-        return self.strikes(user_id)
-
 
 class RequestFlow:
     """Member message -> title -> confirmation -> duplicate check -> form submission."""
 
-    def __init__(self, store: Store, fetch_title, submit_form, strike_limit: int = 3):
+    def __init__(self, store: Store, fetch_title, submit_form):
         self.store = store
         self.fetch_title = fetch_title  # callable(url) -> title
         self.submit_form = submit_form  # callable(title, url, member_name) -> None
-        self.strike_limit = strike_limit
         self.pending = {}  # user_id -> (title, url)
 
     def handle(self, user_id, member_name: str, text: str) -> str:
@@ -77,9 +62,6 @@ class RequestFlow:
         text = (text or "").strip()
         if not text:
             return "Send me a title or a link to request it."
-
-        if self.store.strikes(user_id) >= self.strike_limit:
-            return "Requests are paused for you (too many strikes). Please contact the admin."
 
         if user_id in self.pending:
             answer = text.lower()
@@ -106,11 +88,7 @@ class RequestFlow:
             return "I could not find a title there. Please send it as text."
 
         if self.store.in_catalog(title):
-            count = self.store.add_strike(user_id)
-            return (
-                f"'{title}' is already in the catalog. Please check it before requesting. "
-                f"Strike {count}/{self.strike_limit}."
-            )
+            return f"'{title}' is already in the library. Please check it before requesting."
 
         self.pending[user_id] = (title, url)
         return f"Is this what you mean?\n{title}\nReply YES to submit or NO to cancel."
